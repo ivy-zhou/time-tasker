@@ -142,12 +142,13 @@ li.collection-item {
  }
 
  .btn {
-   margin-top: 70px;
+   margin-top: 105px;
    margin-right: 10px;
  }
 
- .del-btn {
-   margin-left: 15px;
+ .del_btn {
+   margin-left: 30px;
+   margin-right: 30px;
  }
 
  .expand-btn {

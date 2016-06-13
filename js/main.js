@@ -2,22 +2,20 @@
 var $tasks; // jQuery reference to the ul of tasks
 // var tasks = []; // stores information in Task objects, implement smart indexing later
 var nTasks = 0;
-var durationText = ["5 seconds",
-                      "2 minutes", "15 minutes", "Enter my time"];
-var durationTimes = [5, 120, 900, 0]; // durations in  seconds
-
+var timeWeight = [3600, 60, 1];
 // task constructor, constructs a task and adds it to the page
 var Task = function (taskIndex) {
   var index = taskIndex;
   this.isCompleted = false;
-  this.duration = 0;
+  this.duration = -1; // time left in seconds
+  var durations = [0, 0, 0];
   var timerInterval;
   var timeLeft;
   var barIncrement;
-  templates = []; // 0 - name input bar template, 1 - icons template,
+  var templates = []; // 0 - name input bar template, 1 - icons template,
                   // 2 - duration options template, 3 - alarm switch template
                   // 4 - delete button, 5 - save button
-  rows = []; // 0 - bar template, 1 - row 1, 2 - row 2, 3 - row 4 (missing row 3 = description)
+  var rows = []; // 0 - bar template, 1 - row 1, 2 - row 2
   var $task;
 
   // create templates for everything we'll need
@@ -59,10 +57,6 @@ var Task = function (taskIndex) {
   }
   $time_table.append($time_row);
 
-  var $duration = $("<select>");
-  for(var i = 0; i < durationText.length; i++) { // jshint ignore:line
-    $duration.append($("<option>", {value: i, text: durationText[i]}));
-  }
   templates.push($("<div>", {"class": "input-field col s6"}).append( // duration options template
                           $time_table, $("<label>", {text: "Duration"})));
   var $alarm_switch = $("<input>", {type: "checkbox"});
@@ -74,21 +68,12 @@ var Task = function (taskIndex) {
                           $("<span>", {"class": "lever"}),
                           $("<span>", {text: "Alarm On"})
                         ))));
+  var $del_btn = $("<a>", {"class": "btn-floating waves-effect waves-light del_btn btn"}).append(
+                      $("<i>", {"class": "material-icons", text: "delete"}));
+  var $save_btn = $("<a>", {"class": "waves-effect waves-light btn", text: "Save"}).append(
+                      $("<i>", {"class": "material-icons right", text: "input"}));
   rows.push($("<div>", {"class": "row"}).append(templates[2], templates[3],
-                         $("<button>", {"class": "btn waves-effect waves-light del_btn", text: "Delete"}),
-                         $("<button>", {"class": "btn waves-effect waves-light", type: "submit", name: "action", text: "Save"}))); // row 2
-
-  // ROW 4
-  var $del_btn = $("<button>", {"class": "btn waves-effect waves-light del_btn", text: "Delete"});
-  templates.push($("<div>", {"class": "col s3 offset-s6"}).append(
-                      $del_btn));
-  var $save_btn = $("<button>", {"class": "btn waves-effect waves-light save_btn", type: "submit", name: "action", text: "Save"});
-  templates.push($("<div>", {"class": "col s3"}).append(
-                      $save_btn));
-  rows.push($("<div>", {"class": "row"}).append(templates[4], templates[5])); // row 4
-
-
-  //rows.push($("<div>", {"class": "row"}).append($time_table));
+                         $del_btn, $save_btn)); // row 2
 
   // attaches expanded task to page, assumes that tasks list has been initialized
   this.addTask = function () {
@@ -101,73 +86,46 @@ var Task = function (taskIndex) {
     // spinner listener code
     var spins = $(".spinner");
     for (var i = 0, len = spins.length; i < len; i++) {
-    var spin = spins[i],
-      span = $(spin).children("span"),
-      input = $(spin).children("input");
-    span[1].onclick = (function(input) { // jshint ignore:line
-      return function() {
-      $(input).val(padDigits(
-        wrapTime(parseInt($(input).val()) - 1)));
-      };
-    })(input);
-    span[0].onclick = (function(input) { // jshint ignore:line
-      return function () {
-      $(input).val(padDigits(
-        wrapTime(parseInt($(input).val()) + 1)));
-      };
-    })(input);
+      var spin = spins[i],
+        span = $(spin).children("span"),
+        input = $(spin).children("input");
+      span[1].onclick = (function(input, i) { // jshint ignore:line
+        return function() {
+        time = wrapTime(parseInt($(input).val()) - 1);
+        durations[i] = time;
+        console.log("duration " + i + " assigned " + durations[i]);
+        $(input).val(padDigits(
+          time));
+        };
+      })(input, i);
+      span[0].onclick = (function(input, i) { // jshint ignore:line
+        return function () {
+        time = wrapTime(parseInt($(input).val()) + 1);
+        durations[i] = time;
+        console.log("duration " + i + " assigned " + durations[i]);
+        $(input).val(padDigits(
+          time));
+        };
+      })(input, i);
+    } //  end spinner listener code
+  };
+
+  this.playTimer = function() {
+    if(timeLeft == null){ // jshint ignore:line
+      for (var i = 0, len = durations.length; i < len; i++) {
+        this.duration += durations[i] * timeWeight[i];
+      }
+      timeLeft = this.duration;
     }
-  };
-
-  var expand = function () {
-    $(rows[3]).slideDown("slow");
-    $(rows[2]).slideDown("slow");
-    $task.addClass("expanded");
-    $($expand_btn).addClass("disabled");
-  };
-
-  var contract = function () {
-    $(rows[3]).slideUp("slow");
-    $(rows[2]).slideUp("slow");
-    $task.removeClass("expanded");
-    $($expand_btn).removeClass("disabled");
-  };
-
-  var save = function () {
-    this.taskName = $($name).val();
-    this.duration = durationTimes[$($duration).val()];
-  };
-
-  var padDigits = function (number) {
-    return ("00" + number).slice(-2);
-  };
-
-  function wrapTime (time) {
-    if (time < 0)
-      time += 60;
-    return time % 60;
-  }
-
-  // change a time in seconds to a string (00:00:00)
-  var timeToStr = function (timeLeft) {
-    seconds = timeLeft % 60;
-    minutes = Math.floor(timeLeft / 60) % 60; // JS can't be forced to do integer division
-    hours = Math.floor(minutes / 60) % 24; // limit for timer is one day
-    timeStr = padDigits(hours) + ":" + padDigits(minutes) + ":" + padDigits(seconds);
-    return timeStr;
-  };
-
-  var playTimer = function () {
-    if(timeLeft < 0)
-      return;
-    if(timeLeft == null) // jshint ignore:line
-      timeLeft = this.duration; // time left in seconds
     if(barIncrement == null) // jshint ignore:line
       barIncrement = 100 / timeLeft;
+    if(timeLeft < 0)
+      return;
     timerInterval = setInterval(function () {
       var timeStr = timeToStr(timeLeft);
       barToGo = 100 - barIncrement * timeLeft;
       $($bar).css("width", barToGo + "%");
+      console.log(timeLeft);
       clockText.text(timeStr);
       timeLeft--;
       if(timeLeft <= -1){
@@ -179,7 +137,7 @@ var Task = function (taskIndex) {
     }, 1000); // call back every second
   };
 
-  var pauseTimer = function () {
+  this.pauseTimer = function () {
     clearInterval(timerInterval);
   };
 
@@ -206,41 +164,28 @@ var Task = function (taskIndex) {
     });
 
   // saves everything and calculates stuff for the time
-  $($save_btn).click(function () {
-    contract();
-    save(); // save all the elements of the task
-  });
+  $($save_btn).click($.proxy(function () {
+    this.taskName = $($name).val();
+    this.duration = durationTimes[$($duration).val()];
+ },this));
 
   // expand the task view, maybe make this a minus in the future?
   $($expand_btn).click(function () {
-    $(rows[3]).slideToggle(); // easier to do this than to use the expand/contract methods
     $(rows[2]).slideToggle();
+    $task.toggleClass("expanded");
   });
 
   // play the timer
-  $($play_btn).click(function () {
-    save();
-    if($(this).find("i").text() == "play_circle_filled"){
-      $(this).find("i").text("pause_circle_filled");
-      playTimer();
+  $($play_btn).click($.proxy(function () {
+    if($($play_btn).find("i").text() == "play_circle_filled"){
+      $($play_btn).find("i").text("pause_circle_filled");
+      this.playTimer();
     }
     else {
-      $(this).find("i").text("play_circle_filled");
-      pauseTimer();
+      $($play_btn).find("i").text("play_circle_filled");
+      this.pauseTimer();
     }
-  });
-
-  $($duration).change(
-    function() {
-      // enter my time is always the last
-      if($($duration).val() == durationText.length - 1)
-      {
-        console.log("Enter your own thing");
-      }
-      if(timeLeft < 0)
-        timeLeft = durationTimes[$($duration).val()];
-    }
-  );
+  }, this));
 }; // end of tasks class
 
 // adds an expanded task when clicked
@@ -252,10 +197,27 @@ $("#add-more > a").click(function () {
   newTask.addTask();
 });
 
+// helper functions
+// pads a digit so it looks like a digital clock
+function padDigits(number) {
+  return ("00" + number).slice(-2);
+}
+// wraps times around from 59 -> 0 and 0 <- 59
+function wrapTime (time) {
+  if (time < 0)
+    time += 60;
+  return time % 60;
+}
+// change a time in seconds to a string (00:00:00)
+function timeToStr(timeLeft) {
+  seconds = timeLeft % 60;
+  minutes = Math.floor(timeLeft / 60) % 60; // JS can't be forced to do integer division
+  hours = Math.floor(minutes / 60) % 24; // limit for timer is one day
+  timeStr = padDigits(hours) + ":" + padDigits(minutes) + ":" + padDigits(seconds);
+  return timeStr;
+}
+
 $(document).ready(function() {
   // find the tasks on the page (later, we'll load tasks from local storage if they're there)
   $tasks = $('#tasks');
-
-  // init the option select from the Materialize framework
-  $('select').material_select();
 });
