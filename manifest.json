@@ -1,0 +1,17 @@
+{
+  "name": "Time tasker",
+  "description": "It's a task timer too.",
+  "version": "0.1",
+  "manifest_version": 2,
+  "icons": { "512": "img/clock_512.png" },
+  "app": {
+    "background": {
+      "scripts": ["js/vendor/jquery-1.12.0.min.js", "js/main.js", "js/materialize.min.js"],
+      "css": ["css/icon.css", "css/main.css", "css/materialize.css"],
+      "icons": ["font/material-design-icons/Material-Design-Icons.woff2"],
+      "font": ["fonts/roboto/Roboto-Bold.eot", "fonts/roboto/Roboto-Light.eot",
+                "fonts/roboto/Roboto-Medium.eot", "fonts/roboto/Roboto-Regular.eot",
+                "fonts/roboto/Roboto-Thin.eot"]
+    }
+  }
+}

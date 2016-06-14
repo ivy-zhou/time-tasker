@@ -95,6 +95,10 @@ textarea {
    Author's custom styles
    ========================================================================== */
 
+ html {
+   overflow-y:scroll;
+ }
+
 input[type=text]:disabled, input:read-only {
   color: black !important;
 }

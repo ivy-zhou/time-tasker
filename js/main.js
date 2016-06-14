@@ -2,6 +2,7 @@
 var $tasks; // jQuery reference to the ul of tasks
 // var tasks = []; // stores information in Task objects, implement smart indexing later
 var nTasks = 0;
+var alarm;
 var timeWeight = [3600, 60, 1];
 // task constructor, constructs a task and adds it to the page
 var Task = function (taskIndex) {
@@ -130,6 +131,7 @@ var Task = function (taskIndex) {
       timeLeft--;
       if(timeLeft <= -1){
         clearInterval(timerInterval);
+        alarm.play();
         // if the task is incomplete, tell them!
         if(!$($compl_checkbox).checked)
           $task.css("background-color", "#ffcdd2"); // overdue warning
@@ -220,4 +222,15 @@ function timeToStr(timeLeft) {
 $(document).ready(function() {
   // find the tasks on the page (later, we'll load tasks from local storage if they're there)
   $tasks = $('#tasks');
+  // load sound
+  alarm = new Audio("http://www.freesound.org/data/previews/198/198841_285997-lq.mp3");
+});
+
+chrome.app.runtime.onLaunched.addListener(function() {
+  chrome.app.window.create('index.html', {
+    'outerBounds': {
+      'width': 800,
+      'height': 600
+    }
+  });
 });
